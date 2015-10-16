@@ -156,14 +156,6 @@ grub_tpm_execute(PassThroughToTPM_InputParamBlock *inbuf,
   }
 }
 
-typedef struct {
-	grub_uint32_t pcrindex;
-	grub_uint32_t eventtype;
-	grub_uint8_t digest[20];
-	grub_uint32_t eventsize;
-	grub_uint8_t event[1];
-} Event;
-
 grub_err_t
 grub_tpm_log_event(unsigned char *buf, grub_size_t size, grub_uint8_t pcr,
 		   const char *description)
@@ -176,7 +168,7 @@ grub_tpm_log_event(unsigned char *buf, grub_size_t size, grub_uint8_t pcr,
   grub_efi_uint8_t protocol_version;
   grub_uint32_t eventnum = 0;
   grub_uint32_t algorithm;
-  Event *event;
+  TCG_PCR_EVENT *event;
   EFI_TCG2_EVENT *event2;
 
   if (!grub_tpm_handle_find(&tpm_handle, &protocol_version)) {
@@ -191,17 +183,17 @@ grub_tpm_log_event(unsigned char *buf, grub_size_t size, grub_uint8_t pcr,
       return 0;
     }
 
-    event = grub_zalloc(sizeof (Event) + grub_strlen(description) + 1);
+    event = grub_zalloc(sizeof (TCG_PCR_EVENT) + grub_strlen(description) + 1);
     if (!event) {
       grub_printf("No buffer\n");
       return grub_error (GRUB_ERR_OUT_OF_MEMORY,
 			 N_("cannot allocate TPM event buffer"));
     }
 
-    event->pcrindex = pcr;
-    event->eventtype = 0x0d;
-    event->eventsize = grub_strlen(description) + 1;
-    grub_memcpy(event->event, description, event->eventsize);
+    event->PCRIndex = pcr;
+    event->EventType = 0x0d;
+    event->EventSize = grub_strlen(description) + 1;
+    grub_memcpy(event->Event, description, event->EventSize);
 
     algorithm = 0x00000004; /* SHA 1 */
     status = efi_call_7 (tpm->log_extend_event, tpm, buf, (grub_uint64_t) size,
@@ -229,7 +221,7 @@ grub_tpm_log_event(unsigned char *buf, grub_size_t size, grub_uint8_t pcr,
       return 0;
     }
 
-    event2 = grub_zalloc(sizeof (Event) + grub_strlen(description) + 1);
+    event2 = grub_zalloc(sizeof (EFI_TCG2_EVENT) + grub_strlen(description) + 1);
     if (!event2) {
       grub_printf("No buffer\n");
       return grub_error (GRUB_ERR_OUT_OF_MEMORY,
