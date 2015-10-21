@@ -204,8 +204,13 @@ grub_tpm_log_event(unsigned char *buf, grub_size_t size, grub_uint8_t pcr,
     grub_memcpy(event->event, description, event->eventsize);
 
     algorithm = 0x00000004; /* SHA 1 */
-    status = efi_call_7 (tpm->log_extend_event, tpm, buf, (grub_uint64_t) size,
-			 algorithm, event, &eventnum, &lastevent);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
+    status = efi_call_7 (tpm->log_extend_event, tpm,
+                         (grub_efi_physical_address_t) buf,
+                         (grub_uint64_t) size,
+                         algorithm, (TCG_PCR_EVENT*)event, &eventnum, &lastevent);
+#pragma GCC diagnostic pop
 
     switch (status) {
     case GRUB_EFI_SUCCESS:
@@ -243,8 +248,12 @@ grub_tpm_log_event(unsigned char *buf, grub_size_t size, grub_uint8_t pcr,
     event2->Size = sizeof(*event2) - sizeof(event2->Event) + grub_strlen(description) + 1;
     grub_memcpy(event2->Event, description, grub_strlen(description) + 1);
 
-    status = efi_call_5 (tpm2->hash_log_extend_event, tpm2, 0, buf,
+#pragma GCC diagnostic pop GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
+    status = efi_call_5 (tpm2->hash_log_extend_event, tpm2, 0,
+                         (grub_efi_physical_address_t*) buf,
 			 (grub_uint64_t) size, event2);
+#pragma GCC diagnostic pop
 
     switch (status) {
     case GRUB_EFI_SUCCESS:
