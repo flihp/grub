@@ -100,6 +100,8 @@ grub_linuxefi_unload (void)
 {
   grub_dl_unref (my_mod);
   loaded = 0;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
   if (initrd_mem)
     grub_efi_free_pages((grub_efi_physical_address_t)initrd_mem, BYTES_TO_PAGES(params->ramdisk_size));
   if (linux_cmdline)
@@ -108,6 +110,7 @@ grub_linuxefi_unload (void)
     grub_efi_free_pages((grub_efi_physical_address_t)kernel_mem, BYTES_TO_PAGES(kernel_size));
   if (params)
     grub_efi_free_pages((grub_efi_physical_address_t)params, BYTES_TO_PAGES(16384));
+#pragma GCC diagnostic pop
   return GRUB_ERR_NONE;
 }
 
@@ -155,7 +158,10 @@ grub_cmd_initrd (grub_command_t cmd __attribute__ ((unused)),
     }
 
   params->ramdisk_size = size;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
   params->ramdisk_image = (grub_uint32_t)(grub_uint64_t) initrd_mem;
+#pragma GCC diagnostic pop
 
   ptr = initrd_mem;
 
@@ -182,8 +188,11 @@ grub_cmd_initrd (grub_command_t cmd __attribute__ ((unused)),
     grub_file_close (files[i]);
   grub_free (files);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
   if (initrd_mem && grub_errno)
     grub_efi_free_pages((grub_efi_physical_address_t)initrd_mem, BYTES_TO_PAGES(size));
+#pragma GCC diagnostic pop
 
   return grub_errno;
 }
@@ -285,7 +294,10 @@ grub_cmd_linux (grub_command_t cmd __attribute__ ((unused)),
 			      lh.cmdline_size - (sizeof (LINUX_IMAGE) - 1));
 
   grub_pass_verity_hash(&lh, linux_cmdline);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
   lh.cmd_line_ptr = (grub_uint32_t)(grub_uint64_t)linux_cmdline;
+#pragma GCC diagnostic pop
 
   handover_offset = lh.handover_offset;
 
@@ -309,7 +321,10 @@ grub_cmd_linux (grub_command_t cmd __attribute__ ((unused)),
   grub_loader_set (grub_linuxefi_boot, grub_linuxefi_unload, 0);
   loaded=1;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
   lh.code32_start = (grub_uint32_t)(grub_uint64_t) kernel_mem;
+#pragma GCC diagnostic pop
   grub_memcpy (params, &lh, 2 * 512);
 
   params->type_of_loader = 0x21;
@@ -328,6 +343,8 @@ grub_cmd_linux (grub_command_t cmd __attribute__ ((unused)),
       loaded = 0;
     }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
   if (linux_cmdline && !loaded)
     grub_efi_free_pages((grub_efi_physical_address_t)linux_cmdline, BYTES_TO_PAGES(lh.cmdline_size + 1));
 
@@ -336,6 +353,7 @@ grub_cmd_linux (grub_command_t cmd __attribute__ ((unused)),
 
   if (params && !loaded)
     grub_efi_free_pages((grub_efi_physical_address_t)params, BYTES_TO_PAGES(16384));
+#pragma GCC diagnostic pop
 
   return grub_errno;
 }
